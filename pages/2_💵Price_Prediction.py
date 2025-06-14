@@ -3,6 +3,8 @@ import pickle
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import requests
+import io
 
 # Page config
 st.set_page_config(page_title="🏡 Real Estate Price Prediction", layout="wide")
