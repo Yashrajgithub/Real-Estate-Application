@@ -2,53 +2,20 @@ import streamlit as st
 import pickle
 import pandas as pd
 import numpy as np
+from PIL import Image
 from pathlib import Path
-import tempfile
-import requests
-import io
 
-# Page config
+# Set page configuration
 st.set_page_config(page_title="🏡 Real Estate Price Prediction", layout="wide")
 
-# Local cache directory inside system temp folder
-CACHE_DIR = Path(tempfile.gettempdir()) / "real_estate_cache"
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
+# Load model and data
+with open(Path("datasets/page_1/df.pkl"), "rb") as file:
+    df = pickle.load(file)
 
-# Paths to cached files
-DF_PATH = CACHE_DIR / "df.pkl"
-MODEL_PATH = CACHE_DIR / "xgbmodel.pkl"
+with open(Path("datasets/page_1/xgbmodel.pkl"), "rb") as file:
+    pipeline = pickle.load(file)
 
-# URLs for your files on GitHub raw content
-DF_URL = "https://raw.githubusercontent.com/Yashrajgithub/Real-Estate-Application/main/datasets/page_1/df.pkl"
-MODEL_URL = "https://github.com/Yashrajgithub/Real-Estate-Application/raw/main/xgbmodel.pkl"
-
-@st.cache_data(show_spinner=False)
-def download_file(url: str, dest_path: Path):
-    if not dest_path.exists():
-        response = requests.get(url)
-        response.raise_for_status()
-        dest_path.write_bytes(response.content)
-    return dest_path
-
-@st.cache_data(show_spinner=False)
-def load_data_model():
-    # Download files if not cached locally
-    df_path = download_file(DF_URL, DF_PATH)
-    model_path = download_file(MODEL_URL, MODEL_PATH)
-
-    # Load DataFrame
-    with open(df_path, "rb") as f:
-        df_loaded = pickle.load(f)
-
-    # Load Model pipeline
-    with open(model_path, "rb") as f:
-        model_loaded = pickle.load(f)
-
-    return df_loaded, model_loaded
-
-df, pipeline = load_data_model()
-
-# --- CSS styling ---
+# ---------- Custom CSS ----------
 st.markdown("""
 <style>
     html, body, [class*="css"]  {
@@ -72,6 +39,10 @@ st.markdown("""
         margin-bottom: 1em;
         border-radius: 10px;
     }
+    .main-image {
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
     .stButton>button {
         background-color: #1f77b4;
         color: white;
@@ -86,16 +57,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Header ---
+# ---------- Header ----------
 st.title("Real Estate Price Prediction 🏡")
 st.markdown("<center><i style='color:red;'>Note: This price prediction tool is currently limited to properties in **Pune city** only.</i></center>", unsafe_allow_html=True)
-
-# Main image
 col1, col2, col3 = st.columns([1, 6, 1])
 with col2:
-    st.image("datasets/page_1/images.jpg")
+    st.image("datasets/page_1/images.jpg", use_container_width=True)
 
-# Sidebar info
+# ---------- Sidebar ----------
 with st.sidebar:
     st.header("📊 Model Details")
     st.markdown("""
@@ -106,7 +75,7 @@ with st.sidebar:
     st.markdown("---")
     st.info("ℹ️ Navigate using the page menu if hidden.")
 
-# Guidelines expander
+# ---------- Guidelines ----------
 with st.expander("📋 Guidelines"):
     st.markdown("""
     - Fill in **all property fields**.
@@ -114,7 +83,7 @@ with st.expander("📋 Guidelines"):
     - Binary options like Pooja/Servant Room use `1` (Yes) or `0` (No).
     """)
 
-# Input section
+# ---------- Input Section ----------
 st.markdown("## 🏠 Enter Property Details")
 col1, col2 = st.columns(2)
 
@@ -126,8 +95,8 @@ with col1:
     st.subheader("🏢 Property Details")
     bedrooms = float(st.selectbox("Bedrooms", sorted(df['bedrooms'].unique())))
     bathrooms = float(st.selectbox("Bathrooms", sorted(df['bathrooms'].unique())))
-    balconies = float(st.selectbox("Balconies", sorted(df['balconies'].unique())))
-    age_of_property = float(st.selectbox("Age of Property", sorted(df['age_of_property'].unique())))
+    balconies = st.selectbox("Balconies", sorted(df['balconies'].unique()))
+    age_of_property = st.selectbox("Age of Property", sorted(df['age_of_property'].unique()))
 
 with col2:
     st.subheader("🔧 Amenities & Features")
@@ -139,61 +108,45 @@ with col2:
     luxury_category = st.selectbox("Luxury Category", sorted(df['luxury_category'].unique()))
     floor_category = st.selectbox("Floor Category", sorted(df['floor_category'].unique()))
 
-# Initialize download_df in session_state
-if "download_df" not in st.session_state:
-    st.session_state.download_df = None
+# ---------- Prediction Section ----------
+st.markdown("###  Prediction")
 
-# Prediction and Reset buttons
 col_pred, col_reset = st.columns([1, 1])
+download_df = None  # Initialize to hold result DataFrame
 
 with col_pred:
     if st.button("Predict Price"):
-        input_data = pd.DataFrame({
-            'bedrooms': [bedrooms],
-            'bathrooms': [bathrooms],
-            'balconies': [balconies],
-            'age_of_property': [age_of_property],
-            'furnishing_status': [furnishing_status],
-            'flooring_type': [flooring_type],
-            'parking_space': [parking_space],
-            'built_up_area': [built_up_area],
-            'storage_room': [storage_room],
-            'pooja_room': [pooja_room],
-            'location': [location],
-            'floor_category': [floor_category],
-            'luxury_category': [luxury_category]
-        })
+        data = [[bedrooms, bathrooms, balconies, age_of_property, furnishing_status, flooring_type,
+                 parking_space, built_up_area, storage_room, pooja_room, location, floor_category, luxury_category]]
+        cols = ['bedrooms', 'bathrooms', 'balconies', 'age_of_property', 'furnishing_status',
+                'flooring_type', 'parking_space', 'built_up_area',
+                'storage_room', 'pooja_room', 'location', 'floor_category', 'luxury_category']
 
-        # Model prediction
-        pred_log = pipeline.predict(input_data)[0]
-        pred_price = np.exp(pred_log)  # inverse log transform
+        df_input = pd.DataFrame(data, columns=cols)
+        price = np.exp(pipeline.predict(df_input))[0]
 
-        # Format price nicely
-        if pred_price < 1:
-            price_str = f"₹ {round(pred_price * 100, 2)} Lakhs"
+        if price < 1:
+            price_text = f"₹ {round(price * 100, 2)} Lakhs"
         else:
-            price_str = f"₹ {round(pred_price, 2)} Crores"
+            price_text = f"₹ {round(price, 2)} Crores"
 
-        st.success(f"💰 **Estimated Price:** {price_str}")
+        st.success(f"💰 **Estimated Price:** {price_text}")
+        df_input.insert(0, "Predicted Price", price_text)
+        st.dataframe(df_input)
 
-        # Save for display & download
-        result_df = input_data.copy()
-        result_df.insert(0, "Predicted Price", price_str)
-
-        st.dataframe(result_df)
-        st.session_state.download_df = result_df
+        # Assign for download
+        download_df = df_input.copy()
 
 with col_reset:
     if st.button("↺ Reset Inputs"):
-        st.session_state.download_df = None
-        st.experimental_rerun()
+        st.rerun()
 
-# Download button outside columns
-if st.session_state.download_df is not None:
-    csv_data = st.session_state.download_df.to_csv(index=False).encode('utf-8')
+# ---------- Download Button ----------
+if download_df is not None:
+    csv = download_df.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="📥 Download Prediction Result",
-        data=csv_data,
+        data=csv,
         file_name="predicted_price.csv",
         mime='text/csv'
     )
