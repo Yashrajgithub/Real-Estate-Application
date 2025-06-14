@@ -57,7 +57,7 @@ st.markdown("""
 # Header Image
 image_path = "datasets/page_3/data_analysis_image.jpg"
 image = Image.open(image_path).resize((1000, 500))
-st.image(image, use_container_width=True)
+st.image(image)
 
 # Intro
 st.markdown("""
@@ -120,7 +120,7 @@ fig_area_price.update_traces(hovertemplate="""
 <b>Bedrooms:</b> %{marker.color}<br><extra></extra>
 """)
 fig_area_price.update_yaxes(tickprefix="₹", tickformat=",.2f", ticksuffix=" Crore")
-st.plotly_chart(fig_area_price, use_container_width=True)
+st.plotly_chart(fig_area_price)
 
 # Section: BHK Pie
 st.markdown("---")
@@ -140,7 +140,7 @@ else:
                      color_discrete_sequence=px.colors.qualitative.Pastel)
 
 fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-st.plotly_chart(fig_pie, use_container_width=True)
+st.plotly_chart(fig_pie)
 
 # Section: Box Plot
 st.markdown("---")
@@ -162,7 +162,7 @@ fig_box.update_traces(
     hovertemplate="<b>Bedrooms:</b> %{x}<br><b>Price:</b> ₹%{y:.2f} Crore<extra></extra>",
     marker=dict(color='rgba(0, 123, 255, 0.6)', line=dict(color='rgba(0, 123, 255, 1.0)', width=1))
 )
-st.plotly_chart(fig_box, use_container_width=True)
+st.plotly_chart(fig_box)
 
 # Section: Feature-wise Bar Chart
 st.markdown("---")
@@ -209,6 +209,6 @@ fig_bar.update_layout(
 fig_bar.update_traces(
     hovertemplate=f"<b>{selected_option}:</b> %{{x}}<br><b>Price:</b> ₹%{{y:.2f}} Crore<br><extra></extra>"
 )
-st.plotly_chart(fig_bar, use_container_width=True)
+st.plotly_chart(fig_bar)
 
 st.markdown("---")
