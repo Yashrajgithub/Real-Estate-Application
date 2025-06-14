@@ -8,7 +8,7 @@ import pandas as pd
 
 # --- Page Configuration ---
 st.set_page_config(
-    page_title="Real Estate Application",
+    page_title="Homematch AI",
     page_icon="🏠",
     layout="wide",
 )
@@ -86,7 +86,7 @@ st.markdown("""
     </style>
 
     <h1 style='text-align: center;'>
-        🏠 <span class="gradient-text">Real Estate Application</span>
+        🏠 <span class="gradient-text">Hommematch AI Application</span>
     </h1>
 """, unsafe_allow_html=True)
 
@@ -122,7 +122,7 @@ def main():
         </style>
 
         <div style='text-align: center; margin-top: 30px;'>
-            <h2><span class='gradient-h2'>Welcome to Real Estate Application Pune!</span></h2>
+            <h2><span class='gradient-h2'>Welcome to Homematch AI!</span></h2>
             <p style='font-size: 18px;'>
                 <span class='gradient-p'>
                     Explore property insights, predictions, and recommendations tailored to Pune’s real estate market.
