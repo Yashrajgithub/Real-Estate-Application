@@ -2,20 +2,23 @@ import streamlit as st
 import pickle
 import pandas as pd
 import numpy as np
-from PIL import Image
 from pathlib import Path
 
-# Set page configuration
+# Page config
 st.set_page_config(page_title="🏡 Real Estate Price Prediction", layout="wide")
 
-# Load model and data
-with open(Path("datasets/page_1/df.pkl"), "rb") as file:
-    df = pickle.load(file)
+# Load data and model
+@st.cache_data(show_spinner=False)
+def load_data_model():
+    with open(Path("datasets/page_1/df.pkl"), "rb") as file:
+        df_loaded = pickle.load(file)
+    with open(Path("datasets/page_1/xgbmodel.pkl"), "rb") as file:
+        model_loaded = pickle.load(file)
+    return df_loaded, model_loaded
 
-with open(Path("datasets/page_1/xgbmodel.pkl"), "rb") as file:
-    pipeline = pickle.load(file)
+df, pipeline = load_data_model()
 
-# ---------- Custom CSS ----------
+# --- CSS styling ---
 st.markdown("""
 <style>
     html, body, [class*="css"]  {
@@ -39,10 +42,6 @@ st.markdown("""
         margin-bottom: 1em;
         border-radius: 10px;
     }
-    .main-image {
-        border-radius: 12px;
-        margin-bottom: 30px;
-    }
     .stButton>button {
         background-color: #1f77b4;
         color: white;
@@ -57,16 +56,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- Header ----------
+# --- Header ---
 st.title("Real Estate Price Prediction 🏡")
 st.markdown("<center><i style='color:red;'>Note: This price prediction tool is currently limited to properties in **Pune city** only.</i></center>", unsafe_allow_html=True)
 
-# Show main image without use_container_width (to avoid error)
+# Main image
 col1, col2, col3 = st.columns([1, 6, 1])
 with col2:
-    st.image("datasets/page_1/images.jpg")  # remove use_container_width param
+    st.image("datasets/page_1/images.jpg")
 
-# ---------- Sidebar ----------
+# Sidebar info
 with st.sidebar:
     st.header("📊 Model Details")
     st.markdown("""
@@ -77,7 +76,7 @@ with st.sidebar:
     st.markdown("---")
     st.info("ℹ️ Navigate using the page menu if hidden.")
 
-# ---------- Guidelines ----------
+# Guidelines expander
 with st.expander("📋 Guidelines"):
     st.markdown("""
     - Fill in **all property fields**.
@@ -85,7 +84,7 @@ with st.expander("📋 Guidelines"):
     - Binary options like Pooja/Servant Room use `1` (Yes) or `0` (No).
     """)
 
-# ---------- Input Section ----------
+# Input section
 st.markdown("## 🏠 Enter Property Details")
 col1, col2 = st.columns(2)
 
@@ -110,56 +109,61 @@ with col2:
     luxury_category = st.selectbox("Luxury Category", sorted(df['luxury_category'].unique()))
     floor_category = st.selectbox("Floor Category", sorted(df['floor_category'].unique()))
 
-# ---------- Prediction Section ----------
-st.markdown("### Prediction")
+# Initialize download_df in session_state
+if "download_df" not in st.session_state:
+    st.session_state.download_df = None
 
+# Prediction and Reset buttons
 col_pred, col_reset = st.columns([1, 1])
-download_df = None  # Initialize to hold result DataFrame
 
 with col_pred:
     if st.button("Predict Price"):
-        # Prepare input data as dataframe
-        data = [[
-            bedrooms, bathrooms, balconies, age_of_property, furnishing_status, flooring_type,
-            parking_space, built_up_area, storage_room, pooja_room, location, floor_category, luxury_category
-        ]]
-        cols = [
-            'bedrooms', 'bathrooms', 'balconies', 'age_of_property', 'furnishing_status',
-            'flooring_type', 'parking_space', 'built_up_area',
-            'storage_room', 'pooja_room', 'location', 'floor_category', 'luxury_category'
-        ]
+        input_data = pd.DataFrame({
+            'bedrooms': [bedrooms],
+            'bathrooms': [bathrooms],
+            'balconies': [balconies],
+            'age_of_property': [age_of_property],
+            'furnishing_status': [furnishing_status],
+            'flooring_type': [flooring_type],
+            'parking_space': [parking_space],
+            'built_up_area': [built_up_area],
+            'storage_room': [storage_room],
+            'pooja_room': [pooja_room],
+            'location': [location],
+            'floor_category': [floor_category],
+            'luxury_category': [luxury_category]
+        })
 
-        df_input = pd.DataFrame(data, columns=cols)
+        # Model prediction
+        pred_log = pipeline.predict(input_data)[0]
+        pred_price = np.exp(pred_log)  # inverse log transform
 
-        # Predict price using pipeline
-        price_log = pipeline.predict(df_input)[0]
-        price = np.exp(price_log)  # reverse log transform
-
-        # Format price display
-        if price < 1:
-            price_text = f"₹ {round(price * 100, 2)} Lakhs"
+        # Format price nicely
+        if pred_price < 1:
+            price_str = f"₹ {round(pred_price * 100, 2)} Lakhs"
         else:
-            price_text = f"₹ {round(price, 2)} Crores"
+            price_str = f"₹ {round(pred_price, 2)} Crores"
 
-        st.success(f"💰 **Estimated Price:** {price_text}")
+        st.success(f"💰 **Estimated Price:** {price_str}")
 
-        # Add predicted price to df_input for display and download
-        df_input.insert(0, "Predicted Price", price_text)
-        st.dataframe(df_input)
+        # Save for display & download
+        result_df = input_data.copy()
+        result_df.insert(0, "Predicted Price", price_str)
 
-        # Save result for download
-        download_df = df_input.copy()
+        st.dataframe(result_df)
+        st.session_state.download_df = result_df
 
 with col_reset:
     if st.button("↺ Reset Inputs"):
+        st.session_state.download_df = None
         st.experimental_rerun()
 
-# ---------- Download Button ----------
-if download_df is not None:
-    csv = download_df.to_csv(index=False).encode('utf-8')
+# Download button outside columns
+if st.session_state.download_df is not None:
+    csv_data = st.session_state.download_df.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="📥 Download Prediction Result",
-        data=csv,
+        data=csv_data,
         file_name="predicted_price.csv",
         mime='text/csv'
     )
