@@ -3,6 +3,7 @@ import pickle
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import xgboost as xgb
 
 # Set page configuration
 st.set_page_config(page_title="🏡 Real Estate Price Prediction", layout="wide")
