@@ -93,6 +93,7 @@ st.markdown("""
 # --- Main Content ---
 def main():
     if image_path.exists():
+        image_path = Path("datasets/home_page/homepage_img.jpeg")
         image = Image.open(image_path)
         resized_image = image.resize((900, 450))
         st.image(resized_image)
