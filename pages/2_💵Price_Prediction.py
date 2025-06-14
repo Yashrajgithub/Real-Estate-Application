@@ -6,6 +6,7 @@ from pathlib import Path
 import requests
 import io
 import os
+import tempfile
 
 # Page config
 st.set_page_config(page_title="🏡 Real Estate Price Prediction", layout="wide")
