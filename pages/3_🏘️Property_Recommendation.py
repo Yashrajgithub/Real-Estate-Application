@@ -86,7 +86,7 @@ st.markdown("""
         🏠 <span class="gradient-text">Property Recommendation System</span>
     </h1>
 """, unsafe_allow_html=True)
-st.image(image.resize((750, 400)), use_container_width=True)
+st.image(image.resize((750, 400)))
 
 # Guidelines
 st.markdown("### 📌 How to Use")
