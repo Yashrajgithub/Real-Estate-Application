@@ -60,9 +60,11 @@ st.markdown("""
 # ---------- Header ----------
 st.title("Real Estate Price Prediction 🏡")
 st.markdown("<center><i style='color:red;'>Note: This price prediction tool is currently limited to properties in **Pune city** only.</i></center>", unsafe_allow_html=True)
+
+# Show main image without use_container_width (to avoid error)
 col1, col2, col3 = st.columns([1, 6, 1])
 with col2:
-    st.image("datasets/page_1/images.jpg")
+    st.image("datasets/page_1/images.jpg")  # remove use_container_width param
 
 # ---------- Sidebar ----------
 with st.sidebar:
@@ -95,8 +97,8 @@ with col1:
     st.subheader("🏢 Property Details")
     bedrooms = float(st.selectbox("Bedrooms", sorted(df['bedrooms'].unique())))
     bathrooms = float(st.selectbox("Bathrooms", sorted(df['bathrooms'].unique())))
-    balconies = st.selectbox("Balconies", sorted(df['balconies'].unique()))
-    age_of_property = st.selectbox("Age of Property", sorted(df['age_of_property'].unique()))
+    balconies = float(st.selectbox("Balconies", sorted(df['balconies'].unique())))
+    age_of_property = float(st.selectbox("Age of Property", sorted(df['age_of_property'].unique())))
 
 with col2:
     st.subheader("🔧 Amenities & Features")
@@ -109,37 +111,48 @@ with col2:
     floor_category = st.selectbox("Floor Category", sorted(df['floor_category'].unique()))
 
 # ---------- Prediction Section ----------
-st.markdown("###  Prediction")
+st.markdown("### Prediction")
 
 col_pred, col_reset = st.columns([1, 1])
 download_df = None  # Initialize to hold result DataFrame
 
 with col_pred:
     if st.button("Predict Price"):
-        data = [[bedrooms, bathrooms, balconies, age_of_property, furnishing_status, flooring_type,
-                 parking_space, built_up_area, storage_room, pooja_room, location, floor_category, luxury_category]]
-        cols = ['bedrooms', 'bathrooms', 'balconies', 'age_of_property', 'furnishing_status',
-                'flooring_type', 'parking_space', 'built_up_area',
-                'storage_room', 'pooja_room', 'location', 'floor_category', 'luxury_category']
+        # Prepare input data as dataframe
+        data = [[
+            bedrooms, bathrooms, balconies, age_of_property, furnishing_status, flooring_type,
+            parking_space, built_up_area, storage_room, pooja_room, location, floor_category, luxury_category
+        ]]
+        cols = [
+            'bedrooms', 'bathrooms', 'balconies', 'age_of_property', 'furnishing_status',
+            'flooring_type', 'parking_space', 'built_up_area',
+            'storage_room', 'pooja_room', 'location', 'floor_category', 'luxury_category'
+        ]
 
         df_input = pd.DataFrame(data, columns=cols)
-        price = np.exp(pipeline.predict(df_input))[0]
 
+        # Predict price using pipeline
+        price_log = pipeline.predict(df_input)[0]
+        price = np.exp(price_log)  # reverse log transform
+
+        # Format price display
         if price < 1:
             price_text = f"₹ {round(price * 100, 2)} Lakhs"
         else:
             price_text = f"₹ {round(price, 2)} Crores"
 
         st.success(f"💰 **Estimated Price:** {price_text}")
+
+        # Add predicted price to df_input for display and download
         df_input.insert(0, "Predicted Price", price_text)
         st.dataframe(df_input)
 
-        # Assign for download
+        # Save result for download
         download_df = df_input.copy()
 
 with col_reset:
     if st.button("↺ Reset Inputs"):
-        st.rerun()
+        st.experimental_rerun()
 
 # ---------- Download Button ----------
 if download_df is not None:
