@@ -3,72 +3,46 @@ import pickle
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import tempfile
 import requests
 import io
-import os
-import tempfile
 
 # Page config
 st.set_page_config(page_title="🏡 Real Estate Price Prediction", layout="wide")
 
-# URLs to raw files on GitHub
-MODEL_URL = "https://github.com/Yashrajgithub/Real-Estate-Application/raw/main/xgbmodel.pkl"
-DATA_URL = "https://github.com/Yashrajgithub/Real-Estate-Application/raw/main/datasets/page_1/df.pkl"
-
-# Local cache directory inside Streamlit's temp folder
-CACHE_DIR = Path(st.cache_dir()) / "real_estate_cache"
+# Local cache directory inside system temp folder
+CACHE_DIR = Path(tempfile.gettempdir()) / "real_estate_cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Paths to cached files
+DF_PATH = CACHE_DIR / "df.pkl"
 MODEL_PATH = CACHE_DIR / "xgbmodel.pkl"
-DATA_PATH = CACHE_DIR / "df.pkl"
+
+# URLs for your files on GitHub raw content
+DF_URL = "https://raw.githubusercontent.com/Yashrajgithub/Real-Estate-Application/main/datasets/page_1/df.pkl"
+MODEL_URL = "https://github.com/Yashrajgithub/Real-Estate-Application/raw/main/xgbmodel.pkl"
 
 @st.cache_data(show_spinner=False)
-def download_file(url: str, local_path: Path):
-    """
-    Download a file from url and save to local_path if not already exists.
-    Returns True if file is ready locally.
-    """
-    if local_path.exists():
-        return True
-    try:
+def download_file(url: str, dest_path: Path):
+    if not dest_path.exists():
         response = requests.get(url)
         response.raise_for_status()
-        if len(response.content) == 0:
-            st.error(f"Downloaded file from {url} is empty.")
-            return False
-        local_path.write_bytes(response.content)
-        return True
-    except Exception as e:
-        st.error(f"Failed to download {url}: {e}")
-        return False
+        dest_path.write_bytes(response.content)
+    return dest_path
 
 @st.cache_data(show_spinner=False)
-def load_pickle_file(path: Path):
-    """
-    Load a pickle file safely.
-    """
-    try:
-        with open(path, "rb") as file:
-            obj = pickle.load(file)
-        return obj
-    except Exception as e:
-        st.error(f"Error loading pickle file {path}: {e}")
-        return None
-
 def load_data_model():
-    # Download files if needed
-    if not download_file(DATA_URL, DATA_PATH):
-        st.stop()
-    if not download_file(MODEL_URL, MODEL_PATH):
-        st.stop()
+    # Download files if not cached locally
+    df_path = download_file(DF_URL, DF_PATH)
+    model_path = download_file(MODEL_URL, MODEL_PATH)
 
-    # Load from local cache
-    df_loaded = load_pickle_file(DATA_PATH)
-    model_loaded = load_pickle_file(MODEL_PATH)
+    # Load DataFrame
+    with open(df_path, "rb") as f:
+        df_loaded = pickle.load(f)
 
-    if df_loaded is None or model_loaded is None:
-        st.stop()
+    # Load Model pipeline
+    with open(model_path, "rb") as f:
+        model_loaded = pickle.load(f)
 
     return df_loaded, model_loaded
 
