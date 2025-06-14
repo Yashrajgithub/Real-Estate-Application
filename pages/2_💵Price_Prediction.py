@@ -12,14 +12,14 @@ st.set_page_config(page_title="🏡 Real Estate Price Prediction", layout="wide"
 # Load data and model
 @st.cache_data(show_spinner=False)
 def load_data_model():
-    # Load local df.pkl
-    with open(Path("datasets/page_1/df.pkl"), "rb") as file:
-        df_loaded = pickle.load(file)
+    # Load dataframe locally
+    with open("datasets/page_1/df.pkl", "rb") as f:
+        df_loaded = pickle.load(f)
 
-    # Load model from GitHub raw URL
-    url = "https://raw.githubusercontent.com/Yashrajgithub/Real-Estate-Application/main/xgbmodel.pkl"
+    # Load model from URL
+    url = "https://github.com/Yashrajgithub/Real-Estate-Application/raw/main/xgbmodel.pkl"
     response = requests.get(url)
-    response.raise_for_status()  # Raises HTTPError if bad response
+    response.raise_for_status()  # Check that request succeeded
 
     model_bytes = io.BytesIO(response.content)
     model_loaded = pickle.load(model_bytes)
