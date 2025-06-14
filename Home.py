@@ -86,7 +86,7 @@ st.markdown("""
     </style>
 
     <h1 style='text-align: center;'>
-        🏠 <span class="gradient-text">Hommematch AI Application</span>
+        🏠 <span class="gradient-text">Homematch AI Application</span>
     </h1>
 """, unsafe_allow_html=True)
 
