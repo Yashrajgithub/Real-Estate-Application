@@ -93,11 +93,11 @@ st.markdown("""
 # --- Main Content ---
 def main():
     if image_path.exists():
-    image = Image.open(image_path)
-    resized_image = image.resize((900, 450))
-    st.image(resized_image)
-else:
-    st.warning(f"Image not found at path: {image_path}")
+        image = Image.open(image_path)
+        resized_image = image.resize((900, 450))
+        st.image(resized_image)
+    else:
+        st.warning(f"Image not found at path: {image_path}")
 
     # Welcome Section with Gradient Text
     st.markdown("""
