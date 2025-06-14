@@ -92,11 +92,12 @@ st.markdown("""
 
 # --- Main Content ---
 def main():
-    # Hero Image
-    image_path = Path("datasets/home_page/homepage_img.jpeg")
+    if image_path.exists():
     image = Image.open(image_path)
     resized_image = image.resize((900, 450))
     st.image(resized_image, use_container_width=True)
+else:
+    st.warning(f"Image not found at path: {image_path}")
 
     # Welcome Section with Gradient Text
     st.markdown("""
