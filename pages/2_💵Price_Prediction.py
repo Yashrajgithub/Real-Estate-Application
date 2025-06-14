@@ -62,7 +62,7 @@ st.title("Real Estate Price Prediction 🏡")
 st.markdown("<center><i style='color:red;'>Note: This price prediction tool is currently limited to properties in **Pune city** only.</i></center>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns([1, 6, 1])
 with col2:
-    st.image("datasets/page_1/images.jpg", use_container_width=True)
+    st.image("datasets/page_1/images.jpg")
 
 # ---------- Sidebar ----------
 with st.sidebar:
