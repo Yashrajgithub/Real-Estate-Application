@@ -5,27 +5,72 @@ import numpy as np
 from pathlib import Path
 import requests
 import io
+import os
 
 # Page config
 st.set_page_config(page_title="🏡 Real Estate Price Prediction", layout="wide")
 
-# Load data and model
+# URLs to raw files on GitHub
+MODEL_URL = "https://github.com/Yashrajgithub/Real-Estate-Application/raw/main/xgbmodel.pkl"
+DATA_URL = "https://github.com/Yashrajgithub/Real-Estate-Application/raw/main/datasets/page_1/df.pkl"
+
+# Local cache directory inside Streamlit's temp folder
+CACHE_DIR = Path(st.cache_dir()) / "real_estate_cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Paths to cached files
+MODEL_PATH = CACHE_DIR / "xgbmodel.pkl"
+DATA_PATH = CACHE_DIR / "df.pkl"
+
 @st.cache_data(show_spinner=False)
+def download_file(url: str, local_path: Path):
+    """
+    Download a file from url and save to local_path if not already exists.
+    Returns True if file is ready locally.
+    """
+    if local_path.exists():
+        return True
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        if len(response.content) == 0:
+            st.error(f"Downloaded file from {url} is empty.")
+            return False
+        local_path.write_bytes(response.content)
+        return True
+    except Exception as e:
+        st.error(f"Failed to download {url}: {e}")
+        return False
+
+@st.cache_data(show_spinner=False)
+def load_pickle_file(path: Path):
+    """
+    Load a pickle file safely.
+    """
+    try:
+        with open(path, "rb") as file:
+            obj = pickle.load(file)
+        return obj
+    except Exception as e:
+        st.error(f"Error loading pickle file {path}: {e}")
+        return None
+
 def load_data_model():
-    # Load dataframe locally
-    with open("datasets/page_1/df.pkl", "rb") as f:
-        df_loaded = pickle.load(f)
+    # Download files if needed
+    if not download_file(DATA_URL, DATA_PATH):
+        st.stop()
+    if not download_file(MODEL_URL, MODEL_PATH):
+        st.stop()
 
-    # Load model from URL
-    url = "https://github.com/Yashrajgithub/Real-Estate-Application/raw/main/xgbmodel.pkl"
-    response = requests.get(url)
-    response.raise_for_status()  # Check that request succeeded
+    # Load from local cache
+    df_loaded = load_pickle_file(DATA_PATH)
+    model_loaded = load_pickle_file(MODEL_PATH)
 
-    model_bytes = io.BytesIO(response.content)
-    model_loaded = pickle.load(model_bytes)
+    if df_loaded is None or model_loaded is None:
+        st.stop()
 
     return df_loaded, model_loaded
-    
+
 df, pipeline = load_data_model()
 
 # --- CSS styling ---
